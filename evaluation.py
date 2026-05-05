@@ -68,8 +68,10 @@ def run_evaluation(
     steps: int = 24,
     seed: int = 1,
     include_q_learning: bool = True,
+    include_sarsa: bool = True,
+    include_mc: bool = True,
 ) -> List[Dict[str, float | str]]:
-    """Run baseline comparison and optionally include Q-learning."""
+    """Run baseline comparison and optionally include learned RL methods."""
 
     rows: List[Dict[str, float | str]] = []
 
@@ -84,6 +86,20 @@ def run_evaluation(
         training_env = build_default_environment(seed=seed, grid_size=grid_size, time_slots=time_slots, steps=steps)
         q_table, _ = train_q_learning(training_env, episodes=training_episodes, seed=seed)
         policies.append(QTablePolicy(q_table=q_table))
+
+    if include_sarsa:
+        from sarsa import train_sarsa
+
+        training_env = build_default_environment(seed=seed, grid_size=grid_size, time_slots=time_slots, steps=steps)
+        q_table, _ = train_sarsa(training_env, episodes=training_episodes, seed=seed)
+        policies.append(QTablePolicy(q_table=q_table, name="SARSA"))
+
+    if include_mc:
+        from mc import train_monte_carlo_control
+
+        training_env = build_default_environment(seed=seed, grid_size=grid_size, time_slots=time_slots, steps=steps)
+        q_table, _ = train_monte_carlo_control(training_env, episodes=training_episodes, seed=seed)
+        policies.append(QTablePolicy(q_table=q_table, name="Monte Carlo"))
 
     for idx, policy in enumerate(policies):
         eval_env = build_default_environment(
@@ -133,6 +149,8 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--output", type=Path, default=Path("results/evaluation_summary.csv"))
     parser.add_argument("--no-q-learning", action="store_true")
+    parser.add_argument("--no-sarsa", action="store_true")
+    parser.add_argument("--no-mc", action="store_true")
     args = parser.parse_args()
 
     rows = run_evaluation(
@@ -143,6 +161,8 @@ def main() -> None:
         steps=args.steps,
         seed=args.seed,
         include_q_learning=not args.no_q_learning,
+        include_sarsa=not args.no_sarsa,
+        include_mc=not args.no_mc,
     )
     write_results_csv(rows, args.output)
     print_results_table(rows)
