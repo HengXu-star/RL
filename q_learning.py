@@ -202,3 +202,16 @@ def save_learning_curve_data(rewards_per_episode: List[float], filename: str = "
         writer.writerow(["episode", "total_reward"])
         for episode, reward in enumerate(rewards_per_episode, start=1):
             writer.writerow([episode, reward])
+
+
+if __name__ == "__main__":
+    from environment import TaxiGridEnvironment
+
+    env = TaxiGridEnvironment(grid_size=4, num_time_slots=6, max_steps=24, seed=1)
+    q_table, rewards = train_q_learning(env, episodes=3000, seed=1)
+    save_learning_curve_data(rewards, "q_learning_rewards_github_env.csv")
+
+    final_window = min(100, len(rewards))
+    average_reward = sum(rewards[-final_window:]) / final_window
+    print("Saved Q-learning learning curve data to q_learning_rewards_github_env.csv")
+    print(f"Average reward over final {final_window} episodes: {average_reward:.2f}")

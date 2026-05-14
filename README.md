@@ -2,98 +2,168 @@
 
 Group 27 | Heng Xu, Xinyu Tian, Yuanheng Xia, Binqi Zhu, Yu Liang
 
-## Project Overview
+## Overview
 
-This project studies how reinforcement learning can help taxi drivers decide where to reposition between trips in order to increase earnings while reducing idle travel. The repository currently includes a custom grid-world environment, a simulator, and utilities for estimating demand and fare patterns from taxi trip data.
+This project studies how reinforcement learning can help taxi drivers decide where to reposition between trips in order to increase earnings while reduce idle travel. We model the problem as a small grid-world Markov Decision Process and compare:
 
-## 1. Title
+- Random policy
+- Greedy heuristic
+- Q-learning
+- SARSA
+- Monte Carlo control
 
-Smarter Streets: Training a Reinforcement Learning Agent for Dynamic Taxi Dispatch and Zone Navigation
+The repository includes:
 
-## 2. Problem & "Why RL?"
+- `environment.py`: taxi grid-world environment
+- `simulator.py`: runnable simulator demo
+- `q_learning.py`, `sarsa.py`, `mc.py`: tabular RL methods
+- `baseline.py`: random and greedy baselines
+- `evaluation.py`: comparison metrics and summary table
+- `visualization.py`: generates plots from results
 
-Urban taxi drivers face a continuous challenge: where to reposition between trips to maximize daily earnings while minimizing idle travel. This is not a one-shot prediction problem. Each repositioning decision affects future state because moving to a busy zone now may lead to a fare, but that fare may then place the driver in a lower-demand area later.
+## Problem Formulation
 
-Reinforcement learning is a natural fit because the driver, treated as the agent, must make repeated decisions under uncertainty and learn from delayed rewards over an entire shift. The environment is stochastic because demand changes across zones and time slots. Tabular RL methods such as Q-learning and SARSA are well-suited to this setup because the environment is discrete and finite.
+We define the taxi repositioning problem as a tabular MDP.
 
-## 3. MDP Formulation
+- State: `(zone, time_slot)`
+- Actions: `stay`, `up`, `down`, `left`, `right`
+- Reward: `fare_revenue - repositioning_cost`
 
-### State Space
+This is a sequential decision-making problem because each move changes the taxi's future location and future revenue opportunities.
 
-The state at time `t` is defined as `(zone, time_slot)`, where:
+## Requirements
 
-- `zone` is the driver's current discrete city location in the grid
-- `time_slot` is the discretized time period within the shift
+This project was tested with Python 3.11.
 
-This representation captures the two main drivers of demand: location and time of day.
+Install dependencies:
 
-### Action Space
+```bash
+python3 -m pip install -r requirements.txt
+```
 
-At each step, the agent chooses one of the following discrete actions:
+## Fastest Way to Verify the Project
 
-- `stay`
-- `move_north`
-- `move_south`
-- `move_east`
-- `move_west`
+If you only want to confirm that the code runs end-to-end, execute these three commands:
 
-Actions are pruned automatically by grid boundaries.
+```bash
+python3 simulator.py --steps 5
+python3 evaluation.py --episodes 20 --training-episodes 100 --output results/evaluation_summary.csv
+python3 visualization.py
+```
 
-### Reward Function
+After that, check:
 
-The reward is defined as:
+- `results/evaluation_summary.csv`
+- `results/method_comparison_bar_chart.png`
+- `results/q_learning_heatmap.png`
+- `results/combined_learning_curves.png`
 
-`reward = fare_revenue - repositioning_cost`
+## Full Reproducible Workflow
 
-- If a passenger is picked up in the destination zone during the next time slot, the agent receives a positive reward based on fare
-- If no passenger is picked up, the agent receives a small negative penalty representing idle repositioning or waiting cost
-
-This reward structure encourages the agent to seek profitable zones without rewarding unnecessary movement.
-
-## 4. Environment and Data Strategy
-
-We build a custom Python grid-world simulator that models a simplified city map. The current implementation supports two data modes:
-
-- Synthetic demand: a built-in demand map creates a simple stochastic environment where central zones and selected time slots have higher pickup probability.
-- Data-driven demand: historical taxi trip records can be converted into `demand_map` and `fare_map` values using `data_utils.py`. Pickup locations are discretized into grid cells, pickup times are converted into time slots, and historical fares are averaged by zone and time slot.
-
-The intended real-world data source is the NYC Taxi Trip Record dataset from NYC TLC.
-
-## 5. Baselines and Evaluation
-
-We plan to compare trained RL agents such as Q-learning and SARSA against simple baseline policies:
-
-- Random policy: select a neighboring zone uniformly at random at each step.
-- Greedy heuristic: move to the zone with the highest historically observed demand for the current time slot.
-
-Primary evaluation metric:
-
-- Cumulative episode reward
-
-Secondary evaluation metrics:
-
-- Pickup rate
-- Average idle time
-- Learning curves across training episodes
-
-We will also compare Q-learning and SARSA to study off-policy versus on-policy behavior in this environment.
-
-## Repository Contents
-
-- `environment.py`: grid-world taxi repositioning environment with `reset()` and `step()`
-- `simulator.py`: runnable simulator entry point
-- `data_utils.py`: utilities for estimating demand and fare maps from taxi trip data
-
-## Quick Start
-
-Run the synthetic simulator:
+### 1. Run the Environment Demo
 
 ```bash
 python3 -u simulator.py --steps 5
 ```
 
-Run with a taxi CSV file:
+Optional data-driven mode:
 
 ```bash
 python3 -u simulator.py --csv /path/to/taxi_data.csv --steps 10
+```
+
+### 2. Train Individual RL Methods
+
+Q-learning:
+
+```bash
+python3 q_learning.py
+```
+
+SARSA:
+
+```bash
+python3 sarsa.py
+```
+
+Monte Carlo:
+
+```bash
+python3 mc.py
+```
+
+These commands generate reward CSV files that can be used for learning curves.
+
+### 3. Run Evaluation
+
+This compares Random, Greedy, Q-learning, SARSA, and Monte Carlo in the same environment.
+
+```bash
+python3 evaluation.py --episodes 500 --training-episodes 3000 --output results/evaluation_summary.csv
+```
+
+For a faster smoke test:
+
+```bash
+python3 evaluation.py --episodes 20 --training-episodes 100 --output results/evaluation_summary.csv
+```
+
+### 4. Generate Plots
+
+This command generates:
+
+- a combined learning curve figure
+- a bar chart comparing methods
+- a heatmap showing learned zone visitation behavior
+
+```bash
+python3 visualization.py
+```
+
+### 5. Generate One Learning Curve Only
+
+Example:
+
+```bash
+python3 plot_learning_curve.py q_learning_rewards_github_env.csv q_learning_learning_curve.png --method-name "Q-learning" --window 100
+```
+
+## Expected Outputs
+
+Main result files are stored in `results/`:
+
+- `evaluation_summary.csv`
+- `method_comparison_bar_chart.png`
+- `q_learning_heatmap.png`
+- `combined_learning_curves.png`
+
+Other repository outputs include:
+
+- `q_learning_rewards_github_env.csv`
+- `sarsa_rewards.csv`
+- `mc_rewards.csv`
+
+## Notes
+
+- The default environment is a simplified 4x4 synthetic grid-world.
+- `data_utils.py` supports converting historical taxi data into demand and fare maps.
+- The plotting scripts are configured to work in headless environments.
+
+## Repository Structure
+
+```text
+.
+├── README.md
+├── requirements.txt
+├── environment.py
+├── simulator.py
+├── data_utils.py
+├── q_learning.py
+├── sarsa.py
+├── mc.py
+├── baseline.py
+├── evaluation.py
+├── visualization.py
+├── plot_learning_curve.py
+└── results/
 ```
