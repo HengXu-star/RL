@@ -9,10 +9,15 @@ from __future__ import annotations
 import argparse
 import csv
 import html
+import os
 from pathlib import Path
 from typing import List, Tuple
 
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+
 try:
+    import matplotlib
+    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
 except ModuleNotFoundError:
